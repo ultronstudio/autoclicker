@@ -33,6 +33,15 @@ jobs:
         run: |
           pyinstaller --onefile --windowed --name NanoAutoClicker --icon .\icon.ico --add-data ".\lang;lang" --clean .\main.py
 
+      - name: Sign executable
+        if: ${{ secrets.WINDOWS_CERT_PFX_BASE64 != '' && secrets.WINDOWS_CERT_PASSWORD != '' }}
+        shell: pwsh
+        env:
+          WINDOWS_CERT_PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          .\scripts\sign-release.ps1 -FilePath .\dist\NanoAutoClicker.exe -CertificateBase64 $env:WINDOWS_CERT_PFX_BASE64 -CertificatePassword $env:WINDOWS_CERT_PASSWORD
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
