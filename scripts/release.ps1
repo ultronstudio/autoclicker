@@ -1,0 +1,1 @@
+pyinstaller --onefile --windowed --name NanoAutoClicker --icon .\icon.ico --clean .\main.py
