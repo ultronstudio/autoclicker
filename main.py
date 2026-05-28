@@ -14,7 +14,7 @@ import pyautogui
 from pynput import keyboard
 
 # constants
-VERSION = "1.2"
+VERSION = "1.2.3"
 ICON_PATH = "icon.ico"
 NAME = "Nano Auto Clicker"
 VERSIONED_NAME = f"{NAME} {VERSION}"
