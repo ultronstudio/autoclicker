@@ -1,7 +1,6 @@
 import json
 import locale
 import os
-import subprocess
 import sys
 import tkinter as tk
 from pathlib import Path
@@ -24,21 +23,7 @@ def get_version():
     if env_version:
         return env_version.strip().lstrip("v")
 
-    try:
-        repo_root = Path(__file__).resolve().parent
-        result = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            cwd=repo_root,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return result.stdout.strip().lstrip("v")
-    except Exception:
-        pass
-
-    return "1.2.3"
+    return "canary"
 
 
 VERSION = get_version()
