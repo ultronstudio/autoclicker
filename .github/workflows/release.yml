@@ -28,6 +28,8 @@ jobs:
           pip install pyautogui pynput pyinstaller
 
       - name: Build one-file executable
+        env:
+          NANOCLICKER_VERSION: ${{ github.ref_name }}
         run: |
           pyinstaller --onefile --windowed --name NanoAutoClicker --icon .\icon.ico --add-data ".\lang;lang" --clean .\main.py
 

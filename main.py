@@ -1,6 +1,7 @@
 import json
 import locale
 import os
+import subprocess
 import sys
 import tkinter as tk
 from pathlib import Path
@@ -14,9 +15,33 @@ import pyautogui
 from pynput import keyboard
 
 # constants
-VERSION = "1.2.3"
 ICON_PATH = "icon.ico"
 NAME = "Nano Auto Clicker"
+
+
+def get_version():
+    env_version = os.getenv("NANOCLICKER_VERSION")
+    if env_version:
+        return env_version.strip().lstrip("v")
+
+    try:
+        repo_root = Path(__file__).resolve().parent
+        result = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip().lstrip("v")
+    except Exception:
+        pass
+
+    return "1.2.3"
+
+
+VERSION = get_version()
 VERSIONED_NAME = f"{NAME} {VERSION}"
 
 DONATE_NAME = "Petr Vurm"
