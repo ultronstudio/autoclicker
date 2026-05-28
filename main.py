@@ -1,4 +1,9 @@
+import json
+import locale
+import os
+import sys
 import tkinter as tk
+from pathlib import Path
 from tkinter import ttk, messagebox
 import webbrowser
 import threading
@@ -19,6 +24,32 @@ DONATE_IBAN = "CZ46 0800 0000 0070 3051 4389"
 DONATE_ACCOUNT = "7030514389/0800"
 DONATE_EMAIL = "kontakt@petrvurm.cz"
 DONATE_CAMPAIGNS_URL = "https://kampane.petrvurm.cz/"
+
+
+def get_app_base_dir():
+    if getattr(sys, 'frozen', False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent
+
+
+def detect_language():
+    override = os.getenv("NANOCLICKER_LANG")
+    if override:
+        return override.lower()
+
+    current = (locale.getdefaultlocale()[0] or "").lower()
+    return "cs" if current.startswith("cs") else "en"
+
+
+def load_translations():
+    lang_code = detect_language()
+    file_path = get_app_base_dir() / "lang" / f"{lang_code}.json"
+
+    if not file_path.exists():
+        file_path = get_app_base_dir() / "lang" / "en.json"
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 class NanoAutoClicker:
     def __init__(self, root):
@@ -64,6 +95,8 @@ class NanoAutoClicker:
         pyautogui.FAILSAFE = True
         pyautogui.PAUSE = 0
 
+        self.translations = load_translations()
+
         self.setup_style()
         self.build_ui()
         self.start_hotkey_listener()
@@ -73,6 +106,9 @@ class NanoAutoClicker:
     # ------------------------------------------------------------
     # Style
     # ------------------------------------------------------------
+
+    def t(self, key, fallback=None):
+        return self.translations.get(key, fallback or key)
 
     def setup_style(self):
         style = ttk.Style()
@@ -108,12 +144,12 @@ class NanoAutoClicker:
         self.build_support_button(main)
 
     def build_interval_frame(self, parent):
-        frame = ttk.LabelFrame(parent, text="Click interval", padding=12)
+        frame = ttk.LabelFrame(parent, text=self.t("interval_frame"), padding=12)
         frame.pack(fill="x", pady=(0, 12))
 
         vcmd = (self.root.register(self.validate_number), "%P")
 
-        labels = ["hours", "mins", "secs", "milliseconds", "nanoseconds"]
+        labels = [self.t("hours"), self.t("mins"), self.t("secs"), self.t("milliseconds"), self.t("nanoseconds")]
         variables = [
             self.hours_var,
             self.minutes_var,
@@ -144,7 +180,7 @@ class NanoAutoClicker:
 
         ttk.Checkbutton(
             random_box,
-            text="Random offset ±",
+            text=self.t("random_offset"),
             variable=self.random_enabled
         ).pack(side="left")
 
@@ -157,7 +193,7 @@ class NanoAutoClicker:
             validatecommand=vcmd
         ).pack(side="left", padx=(16, 6))
 
-        ttk.Label(random_box, text="milliseconds").pack(side="left")
+        ttk.Label(random_box, text=self.t("milliseconds")).pack(side="left")
 
     def build_middle_area(self, parent):
         wrapper = ttk.Frame(parent)
@@ -170,13 +206,13 @@ class NanoAutoClicker:
         self.build_repeat_options(wrapper)
 
     def build_click_options(self, parent):
-        frame = ttk.LabelFrame(parent, text="Click options", padding=12)
+        frame = ttk.LabelFrame(parent, text=self.t("click_options"), padding=12)
         frame.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
 
         frame.columnconfigure(0, weight=0)
         frame.columnconfigure(1, weight=1)
 
-        ttk.Label(frame, text="Mouse button:").grid(
+        ttk.Label(frame, text=self.t("mouse_button")).grid(
             row=0,
             column=0,
             sticky="w",
@@ -191,7 +227,7 @@ class NanoAutoClicker:
             width=20
         ).grid(row=0, column=1, sticky="ew", pady=(0, 12), padx=(12, 0))
 
-        ttk.Label(frame, text="Click type:").grid(
+        ttk.Label(frame, text=self.t("click_type_label")).grid(
             row=1,
             column=0,
             sticky="w"
@@ -206,12 +242,12 @@ class NanoAutoClicker:
         ).grid(row=1, column=1, sticky="ew", padx=(12, 0))
 
     def build_repeat_options(self, parent):
-        frame = ttk.LabelFrame(parent, text="Click repeat", padding=12)
+        frame = ttk.LabelFrame(parent, text=self.t("click_repeat"), padding=12)
         frame.grid(row=0, column=1, sticky="nsew", padx=(8, 0))
 
         ttk.Radiobutton(
             frame,
-            text="Repeat",
+            text=self.t("repeat"),
             variable=self.repeat_mode,
             value="repeat"
         ).grid(row=0, column=0, sticky="w", pady=(0, 12))
@@ -223,17 +259,17 @@ class NanoAutoClicker:
             justify="right"
         ).grid(row=0, column=1, sticky="w", padx=(20, 8), pady=(0, 12))
 
-        ttk.Label(frame, text="times").grid(row=0, column=2, sticky="w", pady=(0, 12))
+        ttk.Label(frame, text=self.t("times")).grid(row=0, column=2, sticky="w", pady=(0, 12))
 
         ttk.Radiobutton(
             frame,
-            text="Repeat until stopped",
+            text=self.t("repeat_until_stopped"),
             variable=self.repeat_mode,
             value="until_stopped"
         ).grid(row=1, column=0, columnspan=3, sticky="w")
 
     def build_position_frame(self, parent):
-        frame = ttk.LabelFrame(parent, text="Cursor position", padding=12)
+        frame = ttk.LabelFrame(parent, text=self.t("cursor_position"), padding=12)
         frame.pack(fill="x", pady=(0, 14))
 
         frame.columnconfigure(0, weight=0)
@@ -246,21 +282,21 @@ class NanoAutoClicker:
 
         ttk.Radiobutton(
             frame,
-            text="Current location",
+            text=self.t("current_location"),
             variable=self.position_mode,
             value="current"
         ).grid(row=0, column=0, sticky="w", padx=(0, 28))
 
         ttk.Radiobutton(
             frame,
-            text="Fixed location",
+            text=self.t("fixed_location"),
             variable=self.position_mode,
             value="fixed"
         ).grid(row=0, column=1, sticky="w", padx=(0, 18))
 
         ttk.Button(
             frame,
-            text="Pick location",
+            text=self.t("pick_location"),
             command=self.pick_location
         ).grid(row=0, column=2, padx=(0, 18))
 
@@ -288,7 +324,7 @@ class NanoAutoClicker:
 
         self.f6_button = ttk.Button(
             frame,
-            text="Start / Stop — F6",
+            text=self.t("start_stop_button"),
             command=self.toggle_clicking,
             style="Big.TButton"
         )
@@ -301,7 +337,7 @@ class NanoAutoClicker:
 
         btn = tk.Button(
             footer,
-            text="Info / Podpora",
+            text=self.t("support_button"),
             width=18,
             command=self.show_donate_window,
             bg="#f2f2f2",
@@ -314,7 +350,7 @@ class NanoAutoClicker:
         btn.pack(anchor="e")
 
     def build_status(self, parent):
-        self.status_var = tk.StringVar(value="Ready. Press F6 to start.")
+        self.status_var = tk.StringVar(value=self.t("status_ready"))
 
         self.status_label = ttk.Label(
             parent,
@@ -325,10 +361,7 @@ class NanoAutoClicker:
 
         self.status_label.pack(fill="x", pady=(4, 0))
 
-        hint = (
-            "Failsafe: move mouse to the top-left corner to emergency stop. "
-            "Nanoseconds are accepted, but real precision depends on Windows and Python."
-        )
+        hint = self.t("status_hint")
 
         ttk.Label(
             parent,
@@ -344,7 +377,7 @@ class NanoAutoClicker:
 
     def show_donate_window(self):
         win = tk.Toplevel(self.root)
-        win.title("Donate / Podpořit vývoj")
+        win.title(self.t("donate_window_title"))
         win.geometry("560x450")
         win.minsize(560, 450)
         win.resizable(False, False)
@@ -361,15 +394,12 @@ class NanoAutoClicker:
 
         title = ttk.Label(
             wrapper,
-            text="Podpořit vývoj Nano Auto Clickeru",
+            text=self.t("donate_title"),
             font=("Segoe UI", 14, "bold")
         )
         title.pack(anchor="w", pady=(0, 10))
 
-        description = (
-            "Pokud ti nástroj pomohl, můžeš mě dobrovolně podpořit. "
-            "Donate není povinný – aplikace funguje dál normálně."
-        )
+        description = self.t("donate_description")
 
         ttk.Label(
             wrapper,
@@ -378,18 +408,18 @@ class NanoAutoClicker:
             justify="left"
         ).pack(anchor="w", pady=(0, 16))
 
-        info = ttk.LabelFrame(wrapper, text="Bankovní převod", padding=12)
+        info = ttk.LabelFrame(wrapper, text=self.t("bank_transfer"), padding=12)
         info.pack(fill="x", pady=(0, 14))
 
         info.columnconfigure(1, weight=1)
 
-        ttk.Label(info, text="Příjemce:").grid(row=0, column=0, sticky="w", pady=(0, 8))
+        ttk.Label(info, text=self.t("recipient_label")).grid(row=0, column=0, sticky="w", pady=(0, 8))
         ttk.Label(info, text=DONATE_NAME).grid(row=0, column=1, sticky="w", pady=(0, 8))
 
-        ttk.Label(info, text="Číslo účtu:").grid(row=1, column=0, sticky="w", pady=(0, 8))
+        ttk.Label(info, text=self.t("account_label")).grid(row=1, column=0, sticky="w", pady=(0, 8))
         ttk.Label(info, text=DONATE_ACCOUNT).grid(row=1, column=1, sticky="w", pady=(0, 8))
 
-        ttk.Label(info, text="IBAN:").grid(row=2, column=0, sticky="w")
+        ttk.Label(info, text=self.t("iban_label")).grid(row=2, column=0, sticky="w")
 
         iban_entry = ttk.Entry(info, justify="left")
         iban_entry.insert(0, DONATE_IBAN)
@@ -398,16 +428,16 @@ class NanoAutoClicker:
 
         ttk.Button(
             info,
-            text="Kopírovat IBAN",
-            command=lambda: self.copy_to_clipboard(DONATE_IBAN, "IBAN zkopírován do schránky.")
+            text=self.t("copy_iban"),
+            command=lambda: self.copy_to_clipboard(DONATE_IBAN, self.t("copied_iban"))
         ).grid(row=2, column=2, sticky="e")
 
-        campaigns = ttk.LabelFrame(wrapper, text="Specifické kampaně", padding=12)
+        campaigns = ttk.LabelFrame(wrapper, text=self.t("campaigns"), padding=12)
         campaigns.pack(fill="x", pady=(0, 14))
 
         ttk.Label(
             campaigns,
-            text="Pro konkrétní cíle, nástroje nebo projekty můžeš použít kampaně:",
+            text=self.t("campaign_text"),
             wraplength=500,
             justify="left"
         ).pack(anchor="w", pady=(0, 8))
@@ -422,7 +452,7 @@ class NanoAutoClicker:
 
         ttk.Button(
             campaign_row,
-            text="Otevřít",
+            text=self.t("open_button"),
             command=lambda: self.open_url(DONATE_CAMPAIGNS_URL)
         ).pack(side="left")
 
@@ -431,34 +461,36 @@ class NanoAutoClicker:
 
         ttk.Button(
             buttons,
-            text="Zkopírovat e-mail",
-            command=lambda: self.copy_to_clipboard(DONATE_EMAIL, "E-mail zkopírován do schránky.")
+            text=self.t("copy_email"),
+            command=lambda: self.copy_to_clipboard(DONATE_EMAIL, self.t("copied_email"))
         ).pack(side="left")
 
         ttk.Button(
             buttons,
-            text="Zavřít",
+            text=self.t("close_button"),
             command=win.destroy
         ).pack(side="right")
 
         win.grab_set()
         win.focus_force()
 
-    def copy_to_clipboard(self, value, status_message="Zkopírováno do schránky."):
+    def copy_to_clipboard(self, value, status_message=None):
+        if status_message is None:
+            status_message = self.t("copied_to_clipboard")
         try:
             self.root.clipboard_clear()
             self.root.clipboard_append(value)
             self.root.update()
             self.status_var.set(status_message)
         except Exception as e:
-            messagebox.showerror("Clipboard error", str(e))
+            messagebox.showerror(self.t("clipboard_error_title"), str(e))
 
     def open_url(self, url):
         try:
             webbrowser.open_new_tab(url)
-            self.status_var.set(f"Opened: {url}")
+            self.status_var.set(self.t("opened_url", fallback="Opened: {url}").format(url=url))
         except Exception as e:
-            messagebox.showerror("Browser error", str(e))
+            messagebox.showerror(self.t("browser_error_title"), str(e))
 
 
     # ------------------------------------------------------------
@@ -533,8 +565,8 @@ class NanoAutoClicker:
 
     def pick_location(self):
         messagebox.showinfo(
-            "Pick location",
-            "Po kliknutí na OK máš 3 sekundy na přesunutí myši na požadovanou pozici."
+            self.t("pick_location"),
+            self.t("pick_location_hint")
         )
 
         self.root.after(3000, self.save_current_position)
@@ -636,8 +668,8 @@ class NanoAutoClicker:
             return
 
         self.running = True
-        self.f6_button.config(text="Running — press F6 to stop")
-        self.status_var.set("Running. Press F6 to stop.")
+        self.f6_button.config(text=self.t("running_button"))
+        self.status_var.set(self.t("status_running"))
 
         self.click_thread = threading.Thread(
             target=self.click_loop,
@@ -651,19 +683,19 @@ class NanoAutoClicker:
             return
 
         self.running = False
-        self.f6_button.config(text="Start / Stop — F6")
-        self.status_var.set("Stopped. Press F6 to start.")
+        self.f6_button.config(text=self.t("start_stop_button"))
+        self.status_var.set(self.t("status_stopped"))
 
     def emergency_stop(self):
         self.running = False
-        self.f6_button.config(text="Start / Stop — F6")
-        self.status_var.set("Emergency stop: mouse moved to screen corner.")
+        self.f6_button.config(text=self.t("start_stop_button"))
+        self.status_var.set(self.t("status_emergency"))
 
     def error_stop(self, message):
         self.running = False
-        self.f6_button.config(text="Start / Stop — F6")
-        self.status_var.set("Stopped because of an error.")
-        messagebox.showerror("Error", message)
+        self.f6_button.config(text=self.t("start_stop_button"))
+        self.status_var.set(self.t("status_error"))
+        messagebox.showerror(self.t("error_title"), message)
 
     # ------------------------------------------------------------
     # Global F6 hotkey

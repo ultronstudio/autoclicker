@@ -1,1 +1,1 @@
-pyinstaller --onefile --windowed --name NanoAutoClicker --icon .\icon.ico --clean .\main.py
+pyinstaller --onefile --windowed --name NanoAutoClicker --icon .\icon.ico --add-data ".\lang;lang" --clean .\main.py
